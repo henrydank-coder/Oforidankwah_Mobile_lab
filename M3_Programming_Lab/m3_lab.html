@@ -1,0 +1,511 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Line of Credit Manager</title>
+  <style>
+    :root { --maxw: 720px; }
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; background: #f6f7fb; }
+    header { background: #111827; color: white; padding: 14px 16px; }
+    header h1 { margin: 0; font-size: 18px; }
+    main { max-width: var(--maxw); margin: 0 auto; padding: 16px; }
+    .card { background: white; border-radius: 10px; padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,.08); margin-bottom: 12px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row > div { flex: 1; min-width: 220px; }
+    label { display: block; font-size: 13px; margin: 10px 0 4px; color: #374151; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; }
+    button {
+      border: 0; border-radius: 10px; padding: 10px 12px; cursor: pointer;
+      background: #2563eb; color: white; font-weight: 600;
+    }
+    button.secondary { background: #6b7280; }
+    button.danger { background: #dc2626; }
+    button:disabled { background:#9ca3af; cursor:not-allowed; }
+    .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .muted { color: #6b7280; font-size: 13px; }
+    .error { color: #dc2626; font-size: 13px; margin-top: 8px; }
+    .ok { color: #059669; font-size: 13px; margin-top: 8px; }
+    .navhint { font-size: 13px; color: #9ca3af; margin-top: 6px; }
+    .menuGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .menuGrid button { width: 100%; padding: 14px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 8px; font-size: 13px; text-align: left; }
+    th { color: #374151; }
+    .pill { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 12px; background: #eef2ff; color: #3730a3; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Line of Credit Manager</h1>
+</header>
+
+<main>
+  <!-- LOGIN PAGE -->
+  <section id="view-login" class="card" hidden>
+    <h2>Password Entry</h2>
+    <p class="muted">Enter your password to access your line of credit.</p>
+    <label for="loginPass">Password</label>
+    <input id="loginPass" type="password" placeholder="Enter password" />
+    <div class="btnrow">
+      <button id="btnLogin">Login</button>
+      <button id="btnResetAll" class="danger" type="button">Reset App Data</button>
+    </div>
+    <div id="loginMsg" class="error" aria-live="polite"></div>
+    <p class="navhint">Default password is <b>12345</b> (you can change it after login).</p>
+  </section>
+
+  <!-- INFO PAGE -->
+  <section id="view-info" class="card" hidden>
+    <h2>Account Information</h2>
+    <p class="muted">Basic line of credit details and password change.</p>
+
+    <div class="row">
+      <div>
+        <div class="muted">Bank</div>
+        <div id="infoBank" style="font-weight:700;"></div>
+      </div>
+      <div>
+        <div class="muted">Account Open Date</div>
+        <div id="infoOpenDate" style="font-weight:700;"></div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <div class="muted">Credit Limit (max negative) p</div>
+        <div id="infoLimit" style="font-weight:700;"></div>
+      </div>
+      <div>
+        <div class="muted">Interest (negative) x</div>
+        <div id="infoRateNeg" style="font-weight:700;"></div>
+      </div>
+      <div>
+        <div class="muted">Interest (positive) y</div>
+        <div id="infoRatePos" style="font-weight:700;"></div>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:14px 0;">
+
+    <h3>Change Password</h3>
+    <label for="oldPass">Current Password</label>
+    <input id="oldPass" type="password" placeholder="Current password" />
+    <label for="newPass">New Password</label>
+    <input id="newPass" type="password" placeholder="New password (min 4 chars)" />
+    <div class="btnrow">
+      <button id="btnChangePass">Update Password</button>
+      <button class="secondary" id="btnToMenuFromInfo" type="button">Go to Menu</button>
+      <button class="secondary" id="btnLogoutFromInfo" type="button">Logout</button>
+    </div>
+    <div id="passMsg" aria-live="polite"></div>
+  </section>
+
+  <!-- MENU PAGE -->
+  <section id="view-menu" class="card" hidden>
+    <h2>Menu</h2>
+    <p class="muted">Choose an option. (Only Options 1 and 2 are implemented for this lab.)</p>
+    <div class="menuGrid">
+      <button id="goEditInfo">1) Change Basic Info ✅</button>
+      <button id="goTxn">2) Enter Credit / Debit ✅</button>
+      <button id="goGraph" disabled>3) Graph Balance (Not Implemented)</button>
+      <button id="goRecs" disabled>4) Recommendations (Not Implemented)</button>
+    </div>
+    <div class="btnrow">
+      <button class="secondary" id="btnBackToInfo" type="button">Back to Info</button>
+      <button class="secondary" id="btnLogout" type="button">Logout</button>
+    </div>
+    <p class="navhint">Tip: Balance and transactions are saved automatically (localStorage).</p>
+  </section>
+
+  <!-- EDIT BASIC INFO PAGE -->
+  <section id="view-edit" class="card" hidden>
+    <h2>Edit Basic Information</h2>
+    <p class="muted">Update your bank details and interest settings.</p>
+
+    <div class="row">
+      <div>
+        <label for="bankName">Bank Name</label>
+        <input id="bankName" placeholder="e.g., ABC Bank" />
+      </div>
+      <div>
+        <label for="openDate">Account Open Date</label>
+        <input id="openDate" type="date" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="limitP">Credit Limit p (max negative balance)</label>
+        <input id="limitP" type="number" step="0.01" placeholder="e.g., 5000" />
+      </div>
+      <div>
+        <label for="rateNeg">Interest Rate x (negative, % APR)</label>
+        <input id="rateNeg" type="number" step="0.01" placeholder="e.g., 18" />
+      </div>
+      <div>
+        <label for="ratePos">Interest Rate y (positive, % APR)</label>
+        <input id="ratePos" type="number" step="0.01" placeholder="e.g., 1.5" />
+      </div>
+    </div>
+
+    <div class="btnrow">
+      <button id="btnSaveInfo">Save</button>
+      <button class="secondary" id="btnCancelEdit" type="button">Cancel</button>
+    </div>
+    <div id="editMsg" aria-live="polite"></div>
+  </section>
+
+  <!-- TRANSACTION PAGE -->
+  <section id="view-txn" class="card" hidden>
+    <h2>Enter Credit / Debit</h2>
+    <p class="muted">
+      Credits increase your balance; debits decrease it. When you submit a transaction, the app first applies
+      interest since the last transaction time, then posts the credit/debit.
+    </p>
+
+    <div class="row">
+      <div>
+        <label for="txnType">Type</label>
+        <select id="txnType">
+          <option value="credit">Credit (deposit/payment)</option>
+          <option value="debit">Debit (withdrawal/charge)</option>
+        </select>
+      </div>
+      <div>
+        <label for="txnAmount">Amount</label>
+        <input id="txnAmount" type="number" step="0.01" placeholder="e.g., 120.50" />
+      </div>
+      <div>
+        <label for="txnMemo">Memo (optional)</label>
+        <input id="txnMemo" placeholder="e.g., Grocery, paycheck, bill" />
+      </div>
+    </div>
+
+    <div class="btnrow">
+      <button id="btnAddTxn">Submit</button>
+      <button class="secondary" id="btnTxnBack" type="button">Back to Menu</button>
+    </div>
+
+    <div id="txnMsg" aria-live="polite"></div>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:14px 0;">
+    <div class="row">
+      <div>
+        <div class="muted">Current Balance</div>
+        <div id="curBal" style="font-weight:800;font-size:18px;"></div>
+      </div>
+      <div>
+        <div class="muted">Last Transaction Time</div>
+        <div id="lastAccrual" style="font-weight:700;"></div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:14px;">Recent Transactions</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Interest Applied</th>
+          <th>Balance After</th>
+          <th>Memo</th>
+        </tr>
+      </thead>
+      <tbody id="txnTable"></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+/** -------------------------
+ *  Line of Credit App (Lab version)
+ *  Requirements:
+ *  - Login page (password)
+ *  - Info page (bank, open date) + change password
+ *  - Menu page with 4 choices (only implement 1 & 2)
+ *  - Option 1: change basic info
+ *  - Option 2: enter credit/debit + store history
+ *    -> history shows balance after debit/credit including interest changes/accumulation
+ * ------------------------- */
+
+const STORAGE_KEY = "loc_app_v1";
+
+const DEFAULT_STATE = () => ({
+  password: "12345",
+  bankName: "My Bank",
+  openDate: new Date().toISOString().slice(0,10),
+  limitP: 5000,         // max negative allowed (e.g., -5000)
+  rateNegAPR: 18,       // x: % APR when balance < 0
+  ratePosAPR: 1.5,      // y: % APR when balance > 0
+  balance: 0,
+  lastTxnISO: new Date().toISOString(), // used to apply interest between transactions
+  txns: []              // {iso, type, amountSigned, interestApplied, balanceAfter, memo}
+});
+
+let state = loadState();
+let isAuthed = false;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_STATE();
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_STATE(), ...parsed };
+  } catch {
+    return DEFAULT_STATE();
+  }
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function money(n) {
+  const v = Number(n || 0);
+  return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+function pct(n) {
+  return `${Number(n || 0).toFixed(2)}%`;
+}
+function daysBetweenISO(aISO, bISO) {
+  const a = new Date(aISO).getTime();
+  const b = new Date(bISO).getTime();
+  const ms = Math.max(0, b - a);
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Apply interest since lastTxnISO up to now.
+ * Returns interestApplied (could be 0).
+ * Simple daily interest using APR/365.
+ */
+function applyInterestSinceLastTxn(nowISO) {
+  const d = daysBetweenISO(state.lastTxnISO, nowISO);
+  if (d <= 0) return 0;
+
+  const bal = Number(state.balance);
+  let apr = 0;
+  if (bal < 0) apr = Number(state.rateNegAPR);
+  else if (bal > 0) apr = Number(state.ratePosAPR);
+  else apr = 0;
+
+  const interest = bal * (apr / 100) * (d / 365);
+  state.balance = bal + interest;
+  state.lastTxnISO = nowISO;
+  saveState();
+  return interest;
+}
+
+function showView(id) {
+  const views = ["login","info","menu","edit","txn"];
+  for (const v of views) {
+    document.getElementById(`view-${v}`).hidden = (v !== id);
+  }
+}
+
+/** --------- UI Renderers --------- */
+function renderInfo() {
+  document.getElementById("infoBank").textContent = state.bankName;
+  document.getElementById("infoOpenDate").textContent = state.openDate;
+  document.getElementById("infoLimit").textContent = money(-Math.abs(state.limitP)) + " (limit)";
+  document.getElementById("infoRateNeg").textContent = pct(state.rateNegAPR) + " APR";
+  document.getElementById("infoRatePos").textContent = pct(state.ratePosAPR) + " APR";
+}
+
+function renderTxnPage(msg = "") {
+  document.getElementById("curBal").textContent = money(state.balance);
+  document.getElementById("lastAccrual").textContent = new Date(state.lastTxnISO).toLocaleString();
+
+  const tbody = document.getElementById("txnTable");
+  tbody.innerHTML = "";
+
+  const recent = [...state.txns].slice(-10).reverse();
+  for (const t of recent) {
+    const tr = document.createElement("tr");
+    const date = new Date(t.iso).toLocaleString();
+    const type = t.type;
+    const amt = money(t.amountSigned);
+    const intApplied = money(t.interestApplied);
+    const balAfter = money(t.balanceAfter);
+    const memo = t.memo || "";
+    tr.innerHTML = `
+      <td>${date}</td>
+      <td><span class="pill">${type}</span></td>
+      <td>${amt}</td>
+      <td>${intApplied}</td>
+      <td><b>${balAfter}</b></td>
+      <td>${memo}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  const node = document.getElementById("txnMsg");
+  node.textContent = msg;
+  node.className = msg.startsWith("✅") ? "ok" : (msg ? "error" : "");
+}
+
+/** --------- Event Handlers --------- */
+document.getElementById("btnLogin").addEventListener("click", () => {
+  const pass = document.getElementById("loginPass").value;
+  const msg = document.getElementById("loginMsg");
+  if (pass === state.password) {
+    isAuthed = true;
+    document.getElementById("loginPass").value = "";
+    msg.textContent = "";
+    renderInfo();
+    showView("info");
+  } else {
+    msg.textContent = "Incorrect password. Try again.";
+  }
+});
+
+document.getElementById("btnResetAll").addEventListener("click", () => {
+  if (!confirm("Reset all saved app data?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = loadState();
+  isAuthed = false;
+  document.getElementById("loginMsg").textContent = "App data reset. Default password is 12345.";
+  showView("login");
+});
+
+document.getElementById("btnChangePass").addEventListener("click", () => {
+  const oldP = document.getElementById("oldPass").value;
+  const newP = document.getElementById("newPass").value;
+  const out = document.getElementById("passMsg");
+
+  if (oldP !== state.password) {
+    out.className = "error";
+    out.textContent = "Current password is incorrect.";
+    return;
+  }
+  if (!newP || newP.length < 4) {
+    out.className = "error";
+    out.textContent = "New password must be at least 4 characters.";
+    return;
+  }
+  state.password = newP;
+  saveState();
+  document.getElementById("oldPass").value = "";
+  document.getElementById("newPass").value = "";
+  out.className = "ok";
+  out.textContent = "✅ Password updated.";
+});
+
+document.getElementById("btnToMenuFromInfo").addEventListener("click", () => {
+  if (!isAuthed) return showView("login");
+  showView("menu");
+});
+document.getElementById("btnBackToInfo").addEventListener("click", () => {
+  renderInfo();
+  showView("info");
+});
+
+document.getElementById("btnLogoutFromInfo").addEventListener("click", logout);
+document.getElementById("btnLogout").addEventListener("click", logout);
+function logout() {
+  isAuthed = false;
+  document.getElementById("passMsg").textContent = "";
+  document.getElementById("editMsg").textContent = "";
+  document.getElementById("txnMsg").textContent = "";
+  showView("login");
+}
+
+/* Menu navigation */
+document.getElementById("goEditInfo").addEventListener("click", () => {
+  document.getElementById("bankName").value = state.bankName;
+  document.getElementById("openDate").value = state.openDate;
+  document.getElementById("limitP").value = state.limitP;
+  document.getElementById("rateNeg").value = state.rateNegAPR;
+  document.getElementById("ratePos").value = state.ratePosAPR;
+  document.getElementById("editMsg").textContent = "";
+  showView("edit");
+});
+
+document.getElementById("goTxn").addEventListener("click", () => {
+  renderTxnPage("");
+  showView("txn");
+});
+
+/* Edit info save/cancel */
+document.getElementById("btnSaveInfo").addEventListener("click", () => {
+  const bankName = document.getElementById("bankName").value.trim();
+  const openDate = document.getElementById("openDate").value;
+  const limitP = Number(document.getElementById("limitP").value);
+  const rateNeg = Number(document.getElementById("rateNeg").value);
+  const ratePos = Number(document.getElementById("ratePos").value);
+  const out = document.getElementById("editMsg");
+
+  if (!bankName) return (out.className="error", out.textContent="Bank name is required.");
+  if (!openDate) return (out.className="error", out.textContent="Open date is required.");
+  if (!isFinite(limitP) || limitP <= 0) return (out.className="error", out.textContent="Credit limit p must be > 0.");
+  if (!isFinite(rateNeg) || rateNeg < 0) return (out.className="error", out.textContent="Negative APR x must be >= 0.");
+  if (!isFinite(ratePos) || ratePos < 0) return (out.className="error", out.textContent="Positive APR y must be >= 0.");
+
+  state.bankName = bankName;
+  state.openDate = openDate;
+  state.limitP = limitP;
+  state.rateNegAPR = rateNeg;
+  state.ratePosAPR = ratePos;
+  saveState();
+
+  out.className = "ok";
+  out.textContent = "✅ Basic information updated.";
+});
+
+document.getElementById("btnCancelEdit").addEventListener("click", () => showView("menu"));
+
+/* Transactions (Option 2) */
+document.getElementById("btnAddTxn").addEventListener("click", () => {
+  const type = document.getElementById("txnType").value;
+  const amountRaw = Number(document.getElementById("txnAmount").value);
+  const memo = document.getElementById("txnMemo").value.trim();
+
+  if (!isFinite(amountRaw) || amountRaw <= 0) {
+    return renderTxnPage("Amount must be a positive number.");
+  }
+
+  const nowISO = new Date().toISOString();
+
+  // 1) apply interest since last transaction
+  const interestApplied = applyInterestSinceLastTxn(nowISO);
+
+  // 2) apply credit/debit
+  const signed = type === "credit" ? amountRaw : -amountRaw;
+  const newBal = Number(state.balance) + signed;
+
+  // enforce max negative: balance cannot go below -p
+  const minAllowed = -Math.abs(Number(state.limitP));
+  if (newBal < minAllowed - 0.00001) {
+    // rollback interest time update? (keep it simple for lab: interest still applied)
+    return renderTxnPage(`Transaction denied: would exceed your credit limit (${money(minAllowed)}).`);
+  }
+
+  state.balance = newBal;
+  state.lastTxnISO = nowISO;
+
+  // store history row INCLUDING the interest that was applied before posting
+  state.txns.push({
+    iso: nowISO,
+    type,
+    amountSigned: signed,
+    interestApplied: interestApplied,
+    memo,
+    balanceAfter: state.balance
+  });
+
+  saveState();
+
+  // clear inputs
+  document.getElementById("txnAmount").value = "";
+  document.getElementById("txnMemo").value = "";
+
+  renderTxnPage("✅ Transaction saved (interest applied first).");
+});
+
+document.getElementById("btnTxnBack").addEventListener("click", () => showView("menu"));
+
+/** --------- App start --------- */
+showView("login");
+</script>
+</body>
+</html>
